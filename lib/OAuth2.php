@@ -61,6 +61,12 @@ class OAuth2
      */
     protected $storage;
 
+
+    /**
+     * Symfony service container
+     */
+    protected $service_container;
+
     /**
      * Keep track of the old refresh token. So we can unset
      * the old refresh tokens when a new one is issued.
@@ -394,9 +400,10 @@ class OAuth2
      * @param IOAuth2Storage $storage
      * @param array          $config An associative array as below of config options. See CONFIG_* constants.
      */
-    public function __construct(IOAuth2Storage $storage, $config = array())
+    public function __construct(IOAuth2Storage $storage, $config = array(), $service_container = null)
     {
         $this->storage = $storage;
+        $this->service_container = $service_container;
 
         // Configuration options
         $this->setDefaultOptions();
@@ -836,6 +843,17 @@ class OAuth2
                 // returns: true || array('scope' => scope)
                 $stored = $this->grantAccessTokenExtension($client, $inputData, $authHeaders);
         }
+
+        if($this->getVariable('log_token_history')){
+            if($input["grant_type"] == self::GRANT_TYPE_AUTH_CODE || $input["grant_type"] == self::GRANT_TYPE_REFRESH_TOKEN ){
+                if($this->service_container){
+                    $logTokenService = $this->service_container->get($this->getVariable('log_token_service'));
+                    if($logTokenService){
+                        $logTokenService->addLoginHistory($stored['data']->getPartnerId(),$inputData['idp_application'],$inputData['site_key']);
+                    }
+                }
+            }
+        }           
 
         if (!is_array($stored)) {
             $stored = array();
