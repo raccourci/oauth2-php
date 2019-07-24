@@ -843,17 +843,19 @@ class OAuth2
                 // returns: true || array('scope' => scope)
                 $stored = $this->grantAccessTokenExtension($client, $inputData, $authHeaders);
         }
-
+        
         if($this->getVariable('log_token_history')){
             if($input["grant_type"] == self::GRANT_TYPE_AUTH_CODE || $input["grant_type"] == self::GRANT_TYPE_REFRESH_TOKEN ){
                 if($this->service_container){
                     $logTokenService = $this->service_container->get($this->getVariable('log_token_service'));
                     if($logTokenService){
-                        $logTokenService->addLoginHistory($stored['data']->getPartnerId(),$inputData['idp_application'],$inputData['site_key']);
+                        $idp_application = array_key_exists('idp_application',$inputData) ? $inputData['idp_application'] : null;
+                        $site_key = array_key_exists('site_key',$inputData) ? $inputData['site_key'] : null;
+                        $logTokenService->addLoginHistory($stored['data']->getPartnerId(),$idp_application,$site_key);
                     }
                 }
             }
-        }           
+        }     
 
         if (!is_array($stored)) {
             $stored = array();
