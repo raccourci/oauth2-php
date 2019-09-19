@@ -851,7 +851,8 @@ class OAuth2
                     if($logTokenService){
                         $idp_application = array_key_exists('idp_application',$inputData) ? $inputData['idp_application'] : null;
                         $site_key = array_key_exists('site_key',$inputData) ? $inputData['site_key'] : null;
-                        $logTokenService->addLoginHistory($stored['data']->getPartnerId(),$idp_application,$site_key);
+                        $is_raccourci = array_key_exists('raccourci',$inputData) ? $inputData['raccourci'] : null;
+                        $logTokenService->addLoginHistory($stored['data']->getPartnerId(),$idp_application,$site_key,$is_raccourci);
                     }
                 }
             }
