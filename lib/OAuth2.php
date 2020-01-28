@@ -600,6 +600,7 @@ class OAuth2
      */
     protected function getBearerTokenFromHeaders(Request $request, $removeFromRequest)
     {
+        //error_log('getBearerTokenFromHeaders()'.PHP_EOL,3,'/tmp/debug');
         $header = null;
         if (!$request->headers->has('AUTHORIZATION')) {
             // The Authorization header may not be passed to PHP by Apache;
@@ -843,6 +844,8 @@ class OAuth2
                 // returns: true || array('scope' => scope)
                 $stored = $this->grantAccessTokenExtension($client, $inputData, $authHeaders);
         }
+
+        //error_log('stored : '.var_export($stored,true).PHP_EOL,3,'/tmp/debug');
         
         if($this->getVariable('log_token_history')){
             if($input["grant_type"] == self::GRANT_TYPE_AUTH_CODE || $input["grant_type"] == self::GRANT_TYPE_REFRESH_TOKEN ){
@@ -877,7 +880,7 @@ class OAuth2
             $scope = $input["scope"];
         }
 
-        $token = $this->createAccessToken($client, $stored['data'], $scope, $stored['access_token_lifetime'], $stored['issue_refresh_token'], $stored['refresh_token_lifetime']);
+        $token = $this->createAccessToken($client, $stored['data'], $scope, $stored['access_token_lifetime'], $stored['issue_refresh_token'], $stored['refresh_token_lifetime'],$stored['selected_contact']);
         return new Response(json_encode($token), 200, $this->getJsonHeaders());
     }
 
@@ -923,10 +926,13 @@ class OAuth2
         }
 
         $this->usedAuthCode = $authCode;
+        
+        //error_log('authCode : '.var_export($authCode,true).PHP_EOL,3,'/tmp/debug');
 
         return array(
             'scope' => $authCode->getScope(),
             'data' => $authCode->getData(),
+            'selected_contact' => $authCode->getSelectedContact()
         );
     }
 
@@ -1236,6 +1242,8 @@ class OAuth2
         // internally enforcing NONCEs, etc)
         $params = $this->getAuthorizeParams($request);
 
+        //error_log('finishClientAuthorization '.PHP_EOL,3,'/tmp/debug');        
+
         /**
          * Associative array as below:
          *   - response_type: The requested response: an access token, an
@@ -1263,6 +1271,8 @@ class OAuth2
         } else {
             if ($params["response_type"] === self::RESPONSE_TYPE_AUTH_CODE) {
                 $result[self::TRANSPORT_QUERY]['state'] = $params["state"];
+                //error_log('call createAuthCode with data : '.var_export($data,true).PHP_EOL,3,'/tmp/debug');        
+
                 $result[self::TRANSPORT_QUERY]["code"] = $this->createAuthCode(
                     $params["client"],
                     $data,
@@ -1350,7 +1360,7 @@ class OAuth2
      *
      * @ingroup oauth2_section_5
      */
-    public function createAccessToken(IOAuth2Client $client, $data, $scope = null, $access_token_lifetime = null, $issue_refresh_token = true, $refresh_token_lifetime = null)
+    public function createAccessToken(IOAuth2Client $client, $data, $scope = null, $access_token_lifetime = null, $issue_refresh_token = true, $refresh_token_lifetime = null, $selected_contact =  null)
     {
         $token = array(
             "access_token" => $this->genAccessToken(),
@@ -1364,7 +1374,8 @@ class OAuth2
             $client,
             $data,
             time() + ($access_token_lifetime ?: $this->getVariable(self::CONFIG_ACCESS_LIFETIME)),
-            $scope
+            $scope,
+            $selected_contact
         );
 
         // Issue a refresh token also, if we support them
@@ -1375,7 +1386,8 @@ class OAuth2
                 $client,
                 $data,
                 time() + ($refresh_token_lifetime ?: $this->getVariable(self::CONFIG_REFRESH_LIFETIME)),
-                $scope
+                $scope,
+                $selected_contact
             );
 
             // If we've granted a new refresh token, expire the old one
